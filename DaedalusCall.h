@@ -216,7 +216,7 @@ namespace GOTHIC_ENGINE
 		template<DaedalusReturn T>
 		inline bool CheckType(const size_t t_offset)
 		{
-			return m_parser->symtab.table[m_function.m_index + t_offset]->type == TypeToEnum<T>();
+			return m_parser->symtab.table[m_function.m_index + t_offset]->type == static_cast<unsigned int>(TypeToEnum<T>());
 		}
 
 		template<DaedalusReturn T>
@@ -331,6 +331,8 @@ namespace GOTHIC_ENGINE
 					}
 
 				}();
+
+			return value;
 		}
 
 	private:
