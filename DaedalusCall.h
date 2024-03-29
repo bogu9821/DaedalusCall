@@ -381,15 +381,15 @@ namespace GOTHIC_ENGINE
 			t_par->DoStack(contex.m_symbol->single_intdata);
 		}
 
-			if constexpr (std::is_same_v<T, IgnoreReturn>)
-			{
-				contex.PopReturnValue();
-				return{};
-			}
-			else
-			{
-				return contex.ReturnScriptValue<T>();
-			}
+		if constexpr (std::is_same_v<T, IgnoreReturn>)
+		{
+			contex.PopReturnValue();
+			return{};
+		}
+		else
+		{
+			return contex.ReturnScriptValue<T>();
+		}
 	}
 
 	template<DaedalusReturn T = IgnoreReturn>
