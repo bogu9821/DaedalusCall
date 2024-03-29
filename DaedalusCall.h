@@ -120,12 +120,13 @@ namespace GOTHIC_ENGINE
 			return !(std::is_same_v<T, DaedalusVoid> || std::is_same_v<T, IgnoreReturn>);
 		}
 
-		inline bool CheckAllTypes(DaedalusData auto&&... t_arguments)
+		template<DaedalusData... Args>
+		inline bool CheckAllTypes()
 		{
 			size_t counter{};
 			bool valid{ true };
-			(((!CheckType<std::decay_t<decltype(t_arguments)>>(counter++)
-				? (false, valid = false) : true)
+			(((!CheckType<Args>(counter++)
+				? (valid = false, false) : true)
 				&& ...));
 
 			return valid;
@@ -219,15 +220,15 @@ namespace GOTHIC_ENGINE
 			return m_parser->symtab.table[m_function.m_index + t_offset]->type == static_cast<unsigned int>(TypeToEnum<T>());
 		}
 
-		template<DaedalusReturn T>
-		inline eCallFuncError CheckDaedalusCallError(DaedalusData auto&&...  t_args)
+		template<DaedalusReturn T, DaedalusData... Args>
+		inline eCallFuncError CheckDaedalusCallError()
 		{
 			if (!m_symbol)
 			{
 				return eCallFuncError::WRONG_SYMBOL;
 			}
 
-			if (sizeof...(t_args) != m_symbol->ele)
+			if (sizeof...(Args) != m_symbol->ele)
 			{
 				return eCallFuncError::WRONG_ARGS_SIZE;
 			}
@@ -250,9 +251,9 @@ namespace GOTHIC_ENGINE
 				}
 			}
 
-			if constexpr (sizeof...(t_args))
+			if constexpr (sizeof...(Args))
 			{
-				if (!CheckAllTypes(std::forward<decltype(t_args)>(t_args)...))
+				if (!CheckAllTypes<Args...>())
 				{
 					return eCallFuncError::WRONG_ARG_TYPE;
 				}
@@ -351,7 +352,7 @@ namespace GOTHIC_ENGINE
 
 		if constexpr (SafeCall)
 		{
-			if (const auto error = contex.CheckDaedalusCallError<T>(std::forward<decltype(t_args)>(t_args)...);
+			if (const auto error = contex.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
 				error != eCallFuncError::NONE)
 			{
 				return std::unexpected{ error };
@@ -402,7 +403,7 @@ namespace GOTHIC_ENGINE
 		{
 			index = DaedalusFunction{ t_par->GetIndex(t_name.data()) };
 
-			if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T>(std::forward<decltype(t_args)>(t_args)...);
+			if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
 				error != eCallFuncError::NONE)
 			{
 				return std::unexpected{ error };
