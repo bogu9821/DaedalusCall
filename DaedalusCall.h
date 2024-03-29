@@ -196,16 +196,16 @@ namespace GOTHIC_ENGINE
 			switch (m_symbol->offset)
 			{
 			case zPAR_TYPE_INT:
-				ReturnScriptValue<int>();
+				(void)ReturnScriptValue<int>();
 				break;
 			case zPAR_TYPE_STRING:
-				m_parser->PopString();
+				(void)ReturnScriptValue<zSTRING>();
 				break;
 			case zPAR_TYPE_FLOAT:
-				ReturnScriptValue<float>();
+				(void)ReturnScriptValue<float>();
 				break;
 			case zPAR_TYPE_INSTANCE:
-				ReturnScriptValue<void*>();
+				(void)ReturnScriptValue<void*>();
 				break;
 			case zPAR_TYPE_VOID:
 				break;
