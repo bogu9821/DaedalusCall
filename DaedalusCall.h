@@ -412,7 +412,7 @@ namespace GOTHIC_ENGINE
 
 		}
 
-		return CallFunc<T, false>(t_par, index, t_clearStack, std::move(t_args)...);
+		return DaedalusCall<T, false>(t_par, index, t_clearStack, std::move(t_args)...);
 	}
 
 }
