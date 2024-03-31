@@ -28,7 +28,7 @@ namespace GOTHIC_ENGINE
 
 	struct DaedalusFunction
 	{
-		explicit DaedalusFunction(const int t_index)
+		explicit constexpr DaedalusFunction(const int t_index)
 			: m_index(t_index)
 		{
 		};
