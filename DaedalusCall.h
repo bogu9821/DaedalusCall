@@ -493,6 +493,14 @@ namespace GOTHIC_ENGINE
 		return DaedalusCall<T, false>(t_par, index, t_clearStack, std::move(t_args)...);
 	}
 
+	template<DaedalusReturn T = IgnoreReturn, typename ZSTR = zSTRING>
+		//hack for implicit zSTRING conversion
+		requires(std::same_as<ZSTR,zSTRING>)
+	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	{
+		return DaedalusCall<T>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
+	}
+
 }
 
 #undef DCLikely 
