@@ -2,6 +2,8 @@
 #include <unordered_map>
 #include <optional>
 #include <vector>
+#include <ranges>
+#include <algorithm>
 
 #define DCLikely [[likely]]
 #define DCUnlikely [[unlikely]]
@@ -26,6 +28,82 @@ namespace GOTHIC_ENGINE
 	struct DaedalusVoid {};
 	struct IgnoreReturn {};
 
+	inline int ParserGetIndex(zCParser* const t_parser, const std::string_view t_name)
+	{
+		//same array is used in zSTRING::ToUpper
+		static constexpr std::array<unsigned char,256> ToUpperArray =
+		{
+			 0,1,2,3,4,5,6,7,8,9,
+			 10,11,12,13,14,15,16,17,18,19,
+			 20,21,22,23,24,25,26,27,28,29,
+			 30,31,32,33,34,35,36,37,38,39,
+			 40,41,42,43,44,45,46,47,48,49,
+			 50,51,52,53,54,55,56,57,58,59,
+			 60, 61, 62, 63, 64,'A','B','C','D','E',
+			 'F','G','H','I','J','K','L','M','N','O',
+			 'P','Q','R','S','T','U','V','W','X','Y',
+			 'Z', 91, 92, 93, 94, 95, 96,'A','B','C',
+			 'D','E','F','G','H','I','J','K','L','M',
+			 'N','O','P','Q','R','S','T','U','V','W',
+			 'X','Y','Z',123,124,125,126,127,128,154,
+			 144,182,142,183,143,128,210,211,212,216,
+			 215,221,142,143,144,146,226,153,227,234,
+			 235,190,152,153,154,157,156,157,158,159,
+			 181,214,224,233,165,165,166,167,168,169,
+			 170,171,172,173,174,175,176,177,178,179,
+			 180,181,182,183,184,185,186,187,188,189,
+			 190,191,192,193,194,195,196,197,198,198,
+			 200,201,202,203,204,205,206,207,208,209,
+			 210,211,212,213,214,215,216,217,218,219,
+			 220,221,222,223,224,225,226,227,229,229,
+			 230,232,232,233,208,235,237,237,238,239,
+			 240,241,242,243,244,245,246,247,248,249,
+			 250,251,252,253,254,255
+		};
+		
+		constexpr auto CharToUpper = [](const char t_char)
+			{
+				return ToUpperArray[static_cast<unsigned char>(t_char)];
+			};
+
+		const auto upper{ t_name | std::views::transform(CharToUpper) | std::ranges::to<std::string>() };
+
+		const auto& symbTab = t_parser->symtab.table;
+
+		for (int i = 0; i < t_parser->symtab.table.GetNum(); i++)
+		{
+			if (std::string_view(symbTab[i]->name, symbTab[i]->name.Length()) == upper)
+			{
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	inline zCPar_Symbol* ParserGetSymbol(zCParser* const t_parser, const int t_index)
+	{
+		if (t_index < 0 || t_index >= t_parser->symtab.table.GetNum())
+		{
+			return {};
+		}
+
+		return t_parser->symtab.table[t_index];
+	}
+
+	inline zCPar_Symbol* ParserGetSymbol(zCParser* const t_parser, const std::string_view t_name)
+	{
+		const auto index = ParserGetIndex(t_parser, t_name);
+
+		if (index == -1)
+		{
+			return {};
+		}
+
+		return t_parser->symtab.table[index];
+	}
+
+
 	struct DaedalusFunction
 	{
 		explicit constexpr DaedalusFunction(const int t_index)
@@ -35,7 +113,7 @@ namespace GOTHIC_ENGINE
 
 		zCPar_Symbol* GetSymbol(zCParser* const t_parser) const
 		{
-			auto const symb = t_parser->GetSymbol(m_index);
+			auto const symb = ParserGetSymbol(t_parser, m_index);
 
 			if (!symb)
 			{
@@ -75,14 +153,13 @@ namespace GOTHIC_ENGINE
 		|| std::is_same_v<T, IgnoreReturn>
 		|| (std::is_pointer_v<std::decay_t<T>> && !std::is_pointer_v<std::remove_pointer_t<T>>);
 
-
 	struct CallFuncContext
 	{
 		CallFuncContext(zCParser* const t_par, const DaedalusFunction t_function)
 			: m_parser(t_par),
 			m_function(t_function)
 		{
-			m_symbol = m_parser->GetSymbol(t_function.m_index);
+			m_symbol = ParserGetSymbol(m_parser,t_function.m_index);
 		}
 
 		template<DaedalusReturn T>
@@ -138,7 +215,7 @@ namespace GOTHIC_ENGINE
 
 			if constexpr (std::is_pointer_v<ArgType>)
 			{
-				auto const argumentSymbol = m_parser->GetSymbol(t_index);
+				auto const argumentSymbol = ParserGetSymbol(m_parser, t_index);
 
 				argumentSymbol->offset = reinterpret_cast<int>(t_argument);
 				m_parser->datastack.Push(t_index);
@@ -401,7 +478,7 @@ namespace GOTHIC_ENGINE
 
 		if (index == DaedalusFunction{ -1 })
 		{
-			index = DaedalusFunction{ t_par->GetIndex(t_name.data()) };
+			index = DaedalusFunction{ ParserGetIndex(t_par,t_name.data()) };
 
 			if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
 				error != eCallFuncError::NONE)
