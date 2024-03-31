@@ -4,6 +4,7 @@
 #include <vector>
 #include <ranges>
 #include <algorithm>
+#include <array>
 
 #define DCLikely [[likely]]
 #define DCUnlikely [[unlikely]]
