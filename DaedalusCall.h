@@ -29,10 +29,11 @@ namespace GOTHIC_ENGINE
 	struct DaedalusVoid {};
 	struct IgnoreReturn {};
 
-	inline int ParserGetIndex(zCParser* const t_parser, const std::string_view t_name)
+	//use Zengin way to get upper string
+	inline constexpr std::string StrViewToUpperZengin(const std::string_view t_name)
 	{
 		//same array is used in zSTRING::ToUpper
-		static constexpr std::array<unsigned char,256> ToUpperArray =
+		inline constexpr std::array<unsigned char, 256> ToUpperArray =
 		{
 			 0,1,2,3,4,5,6,7,8,9,
 			 10,11,12,13,14,15,16,17,18,19,
@@ -61,19 +62,24 @@ namespace GOTHIC_ENGINE
 			 240,241,242,243,244,245,246,247,248,249,
 			 250,251,252,253,254,255
 		};
-		
+
 		constexpr auto CharToUpper = [](const char t_char)
 			{
 				return ToUpperArray[static_cast<unsigned char>(t_char)];
 			};
 
-		const auto upper{ t_name | std::views::transform(CharToUpper) | std::ranges::to<std::string>() };
+		return t_name | std::views::transform(CharToUpper) | std::ranges::to<std::string>();
+	}
+
+	inline int ParserGetIndex(zCParser* const t_parser, const std::string_view t_name)
+	{
+		const auto upperName = StrViewToUpperZengin(t_name);
 
 		const auto& symbTab = t_parser->symtab.table;
 
 		for (int i = 0; i < t_parser->symtab.table.GetNum(); i++)
 		{
-			if (std::string_view(symbTab[i]->name, symbTab[i]->name.Length()) == upper)
+			if (std::string_view(symbTab[i]->name, symbTab[i]->name.Length()) == upperName)
 			{
 				return i;
 			}
