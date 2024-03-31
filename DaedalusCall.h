@@ -82,7 +82,7 @@ namespace GOTHIC_ENGINE
 			: m_parser(t_par),
 			m_function(t_function)
 		{
-			m_symbol = parser->GetSymbol(t_function.m_index);
+			m_symbol = m_parser->GetSymbol(t_function.m_index);
 		}
 
 		template<DaedalusReturn T>
