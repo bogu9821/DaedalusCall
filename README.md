@@ -1,6 +1,6 @@
 # DaedalusCall
 Templated, compile time specialized universal way of calling daedalus functions from C++ with error checking.
-Requires C++23 and is designed to work with Union 1.0m SDK.
+Requires C++23 and is designed to work with [Gothic API](https://gitlab.com/union-framework/gothic-api).
 
 # Example
 ```cpp
