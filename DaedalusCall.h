@@ -13,7 +13,6 @@ namespace GOTHIC_ENGINE
 {
 	enum class eCallFuncError
 	{
-		NONE,
 		WRONG_SYMBOL,
 		WRONG_ARGS_SIZE,
 		WRONG_ARG_TYPE,
@@ -313,7 +312,7 @@ namespace GOTHIC_ENGINE
 		}
 
 		template<DaedalusReturn T, DaedalusData... Args>
-		inline eCallFuncError CheckDaedalusCallError()
+		inline std::optional<eCallFuncError> CheckDaedalusCallError()
 		{
 			if (!m_symbol)
 			{
@@ -445,9 +444,9 @@ namespace GOTHIC_ENGINE
 		if constexpr (SafeCall)
 		{
 			if (const auto error = contex.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
-				error != eCallFuncError::NONE)
+				error.has_value())
 			{
-				return std::unexpected{ error };
+				return std::unexpected{ *error };
 			}
 		}
 
@@ -498,9 +497,9 @@ namespace GOTHIC_ENGINE
 			index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
 
 			if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
-				error != eCallFuncError::NONE)
+				error.has_value())
 			{
-				return std::unexpected{ error };
+				return std::unexpected{ *error };
 			}
 
 			cache.Add(std::move(upper), index);
