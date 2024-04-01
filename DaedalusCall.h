@@ -486,23 +486,33 @@ namespace GOTHIC_ENGINE
 	template<DaedalusReturn T = IgnoreReturn>
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
-		const auto upper = StrViewToUpperZengin(t_name);
+		const std::string upper = StrViewToUpperZengin(t_name);
 		
 		auto& cache = CallFuncStringCache::Get(t_par);
 
 		auto index = cache.FindCache(upper).value_or(DaedalusFunction{ -1 });
-
+	
 		if (index == DaedalusFunction{ -1 })
 		{
-			index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
-
-			if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
-				error.has_value())
+			auto callError = [&]() -> std::optional<eCallFuncError>
 			{
-				return std::unexpected{ *error };
-			}
+				index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
 
-			cache.Add(std::move(upper), index);
+				if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
+					error.has_value())
+				{
+					return error;
+				}
+
+				cache.Add(std::move(upper), index);
+
+				return{};
+			}();
+
+			if (callError.has_value())
+			{
+				return std::unexpected{ *callError };
+			}
 
 		}
 
