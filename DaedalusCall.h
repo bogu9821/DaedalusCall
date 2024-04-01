@@ -33,7 +33,7 @@ namespace GOTHIC_ENGINE
 	inline constexpr std::string StrViewToUpperZengin(const std::string_view t_name)
 	{
 		//same array is used in zSTRING::ToUpper
-		inline constexpr std::array<unsigned char, 256> ToUpperArray =
+		constexpr std::array<unsigned char, 256> ToUpperArray =
 		{
 			 0,1,2,3,4,5,6,7,8,9,
 			 10,11,12,13,14,15,16,17,18,19,
@@ -71,15 +71,23 @@ namespace GOTHIC_ENGINE
 		return t_name | std::views::transform(CharToUpper) | std::ranges::to<std::string>();
 	}
 
-	inline int ParserGetIndex(zCParser* const t_parser, const std::string_view t_name)
-	{
-		const auto upperName = StrViewToUpperZengin(t_name);
+	template<bool ToUpper = true>
+	inline constexpr int ParserGetIndex(zCParser* const t_parser, std::string_view t_name)
+	{	
+		//TODO use better way
+		[[maybe_unused]]
+		const auto upperName = ToUpper ? StrViewToUpperZengin(t_name) : std::string{};
+
+		if constexpr (ToUpper)
+		{
+			t_name = std::string_view{ upperName };
+		}
 
 		const auto& symbTab = t_parser->symtab.table;
 
-		for (int i = 0; i < t_parser->symtab.table.GetNum(); i++)
+		for (int i = 0; i < symbTab.GetNum(); i++)
 		{
-			if (std::string_view(symbTab[i]->name, symbTab[i]->name.Length()) == upperName)
+			if (std::string_view(symbTab[i]->name, symbTab[i]->name.Length()) == t_name)
 			{
 				return i;
 			}
@@ -88,7 +96,7 @@ namespace GOTHIC_ENGINE
 		return -1;
 	}
 
-	inline zCPar_Symbol* ParserGetSymbol(zCParser* const t_parser, const int t_index)
+	inline constexpr zCPar_Symbol* ParserGetSymbol(zCParser* const t_parser, const int t_index)
 	{
 		if (t_index < 0 || t_index >= t_parser->symtab.table.GetNum())
 		{
@@ -98,7 +106,7 @@ namespace GOTHIC_ENGINE
 		return t_parser->symtab.table[t_index];
 	}
 
-	inline zCPar_Symbol* ParserGetSymbol(zCParser* const t_parser, const std::string_view t_name)
+	inline constexpr zCPar_Symbol* ParserGetSymbol(zCParser* const t_parser, const std::string_view t_name)
 	{
 		const auto index = ParserGetIndex(t_parser, t_name);
 
@@ -166,7 +174,7 @@ namespace GOTHIC_ENGINE
 			: m_parser(t_par),
 			m_function(t_function)
 		{
-			m_symbol = ParserGetSymbol(m_parser,t_function.m_index);
+			m_symbol = ParserGetSymbol(m_parser, t_function.m_index);
 		}
 
 		template<DaedalusReturn T>
@@ -479,13 +487,15 @@ namespace GOTHIC_ENGINE
 	template<DaedalusReturn T = IgnoreReturn>
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
+		const auto upper = StrViewToUpperZengin(t_name);
+		
 		auto& cache = CallFuncStringCache::Get(t_par);
 
-		auto index = cache.FindCache(t_name).value_or(DaedalusFunction{ -1 });
+		auto index = cache.FindCache(upper).value_or(DaedalusFunction{ -1 });
 
 		if (index == DaedalusFunction{ -1 })
 		{
-			index = DaedalusFunction{ ParserGetIndex(t_par,t_name.data()) };
+			index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
 
 			if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
 				error != eCallFuncError::NONE)
@@ -493,7 +503,7 @@ namespace GOTHIC_ENGINE
 				return std::unexpected{ error };
 			}
 
-			cache.Add(std::string{ t_name }, index);
+			cache.Add(std::move(upper), index);
 
 		}
 
@@ -502,7 +512,7 @@ namespace GOTHIC_ENGINE
 
 	template<DaedalusReturn T = IgnoreReturn, typename ZSTR = zSTRING>
 		//hack for implicit zSTRING conversion
-		requires(std::same_as<ZSTR,zSTRING>)
+		requires(std::same_as<ZSTR, zSTRING>)
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		return DaedalusCall<T>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
