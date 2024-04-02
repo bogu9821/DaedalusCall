@@ -72,7 +72,7 @@ namespace GOTHIC_ENGINE
 
 	template<bool ToUpper = true>
 	inline constexpr int ParserGetIndex(zCParser* const t_parser, std::string_view t_name)
-	{	
+	{
 		//TODO use better way
 		[[maybe_unused]]
 		const auto upperName = ToUpper ? StrViewToUpperZengin(t_name) : std::string{};
@@ -483,18 +483,24 @@ namespace GOTHIC_ENGINE
 		}
 	}
 
-	template<DaedalusReturn T = IgnoreReturn>
+	template<DaedalusReturn T = IgnoreReturn, bool Cache = true>
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
+		if constexpr (Cache == false)
+		{
+			return DaedalusCall<T, true>(t_par, ParserGetIndex(t_par, t_name), t_clearStack, std::move(t_args)...);
+		}
+
+		//TODO try to make it compile time if t_name is has static string
 		const std::string upper = StrViewToUpperZengin(t_name);
-		
+
 		auto& cache = CallFuncStringCache::Get(t_par);
 
 		auto index = cache.FindCache(upper).value_or(DaedalusFunction{ -1 });
-	
+
 		if (index == DaedalusFunction{ -1 })
 		{
-			auto callError = [&]() -> std::optional<eCallFuncError>
+			const auto callError = [&]() -> std::optional<eCallFuncError> 
 			{
 				index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
 
@@ -519,12 +525,12 @@ namespace GOTHIC_ENGINE
 		return DaedalusCall<T, false>(t_par, index, t_clearStack, std::move(t_args)...);
 	}
 
-	template<DaedalusReturn T = IgnoreReturn, typename ZSTR = zSTRING>
-		//hack for implicit zSTRING conversion
+	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, typename ZSTR = zSTRING>
+	//hack for implicit zSTRING conversion
 		requires(std::same_as<ZSTR, zSTRING>)
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
-		return DaedalusCall<T>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
+		return DaedalusCall<T, Cache>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
 	}
 
 }
