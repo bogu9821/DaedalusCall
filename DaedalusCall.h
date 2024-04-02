@@ -492,7 +492,7 @@ namespace GOTHIC_ENGINE
 		}
 
 		//TODO try to make it compile time if t_name is has static string
-		const std::string upper = StrViewToUpperZengin(t_name);
+		std::string upper = StrViewToUpperZengin(t_name);
 
 		auto& cache = CallFuncStringCache::Get(t_par);
 
