@@ -257,7 +257,7 @@ namespace GOTHIC_ENGINE
 		}
 
 		template<DaedalusReturn T>
-		inline T ReturnScriptValue()
+		inline auto ReturnScriptValue()
 		{
 			if constexpr (std::is_same_v<T, DaedalusVoid>)
 			{
@@ -270,7 +270,7 @@ namespace GOTHIC_ENGINE
 			}
 			else if constexpr (std::is_same_v<T, zSTRING>)
 			{
-				return *m_parser->PopString();
+				return std::cref(*m_parser->PopString());
 			}
 			else if constexpr (std::is_same_v<T, int>)
 			{
@@ -479,7 +479,7 @@ namespace GOTHIC_ENGINE
 		}
 		else
 		{
-			return contex.ReturnScriptValue<T>();
+			return std::expected<T, eCallFuncError>{ contex.ReturnScriptValue<T>() };
 		}
 	}
 
