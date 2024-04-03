@@ -212,7 +212,7 @@ namespace GOTHIC_ENGINE
 		}
 
 		template<DaedalusData... Args>
-		inline bool CheckAllTypes()
+		inline bool CheckAllTypes() const
 		{
 			size_t counter{};
 			bool valid{ true };
@@ -223,7 +223,7 @@ namespace GOTHIC_ENGINE
 			return valid;
 		}
 
-		inline void PushOne(DaedalusData auto&& t_argument, [[maybe_unused]] const size_t t_index)
+		inline void PushOne(DaedalusData auto&& t_argument, [[maybe_unused]] const size_t t_index) const
 		{
 			using ArgType = std::decay_t<decltype(t_argument)>;
 
@@ -257,7 +257,7 @@ namespace GOTHIC_ENGINE
 		}
 
 		template<DaedalusReturn T>
-		inline auto ReturnScriptValue()
+		inline auto ReturnScriptValue() const
 		{
 			if constexpr (std::is_same_v<T, DaedalusVoid>)
 			{
@@ -282,7 +282,7 @@ namespace GOTHIC_ENGINE
 			}
 		}
 
-		inline void PopReturnValue()
+		inline void PopReturnValue() const
 		{
 			switch (m_symbol->offset)
 			{
@@ -306,13 +306,13 @@ namespace GOTHIC_ENGINE
 		}
 
 		template<DaedalusReturn T>
-		inline bool CheckType(const size_t t_offset)
+		inline bool CheckType(const size_t t_offset) const
 		{
 			return m_parser->symtab.table[m_function.m_index + t_offset]->type == static_cast<unsigned int>(TypeToEnum<T>());
 		}
 
 		template<DaedalusReturn T, DaedalusData... Args>
-		inline std::optional<eCallFuncError> CheckDaedalusCallError()
+		inline std::optional<eCallFuncError> CheckDaedalusCallError() const
 		{
 			if (!m_symbol)
 			{
@@ -439,7 +439,7 @@ namespace GOTHIC_ENGINE
 	template<DaedalusReturn T = IgnoreReturn, bool SafeCall = true>
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const DaedalusFunction t_function, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
-		CallFuncContext contex{ t_par,t_function };
+		const CallFuncContext contex{ t_par,t_function };
 
 		if constexpr (SafeCall)
 		{
@@ -500,7 +500,7 @@ namespace GOTHIC_ENGINE
 
 		if (index == DaedalusFunction{ -1 })
 		{
-			const auto callError = [&]() -> std::optional<eCallFuncError> 
+			const auto callError = [&]() -> std::optional<eCallFuncError>
 			{
 				index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
 
