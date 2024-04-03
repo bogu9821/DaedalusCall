@@ -28,11 +28,12 @@ namespace GOTHIC_ENGINE
 	struct DaedalusVoid {};
 	struct IgnoreReturn {};
 
-	//use Zengin way to get upper string
-	inline constexpr std::string StrViewToUpperZengin(const std::string_view t_name)
+
+	template<std::size_t N>
+	struct FixedStr
 	{
 		//same array is used in zSTRING::ToUpper
-		constexpr std::array<unsigned char, 256> ToUpperArray =
+		inline static constexpr std::array<unsigned char, 256> ToUpperArray =
 		{
 			 0,1,2,3,4,5,6,7,8,9,
 			 10,11,12,13,14,15,16,17,18,19,
@@ -61,14 +62,104 @@ namespace GOTHIC_ENGINE
 			 240,241,242,243,244,245,246,247,248,249,
 			 250,251,252,253,254,255
 		};
+		
+		static inline constexpr char CharToUpperSimple(const char t_char)
+		{
+			return static_cast<char>(ToUpperArray[static_cast<unsigned char>(t_char)]);
+		}
 
-		constexpr auto CharToUpper = [](const char t_char)
-			{
-				return ToUpperArray[static_cast<unsigned char>(t_char)];
-			};
+		static inline constexpr char CharToLowerSimple(const char t_char)
+		{
+			return t_char >= 'A' && t_char <= 'Z'
+				? static_cast<char>(static_cast<unsigned char>(t_char) + ('a' - 'A'))
+				: t_char;
+		}
 
-		return t_name | std::views::transform(CharToUpper) | std::ranges::to<std::string>();
+		constexpr FixedStr(const char(&source)[N + 1])
+		{
+			std::copy(std::cbegin(source), std::cend(source), begin());
+		}
+
+		template<std::size_t LeftSize, std::size_t RightSize>
+		constexpr FixedStr(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right)
+		{
+			static_assert(LeftSize + RightSize == Size);
+
+			std::copy(t_left.cbegin(), t_left.cend(), begin());
+			std::copy(t_right.cbegin(), t_right.cend(), std::next(begin(), static_cast<std::ptrdiff_t>(t_left.size())));
+		}
+
+		constexpr auto& Upper()
+		{
+			std::ranges::transform(m_array, std::begin(m_array), CharToUpperSimple);
+			return *this;
+		}
+
+		constexpr auto& Lower()
+		{
+			std::ranges::transform(m_array, std::begin(m_array), CharToLowerSimple);
+			return *this;
+		}
+
+		[[nodiscard]]
+		constexpr size_t Size() const noexcept
+		{
+			return Size;
+		}
+
+		[[nodiscard]]
+		constexpr char* begin()
+		{
+			return m_array.data();
+		}
+
+		[[nodiscard]]
+		constexpr char* end()
+		{
+			return std::next(m_array.data(), Size());
+		}
+
+		[[nodiscard]]
+		constexpr const char* cbegin() const
+		{
+			return m_array.data();
+		}
+
+		[[nodiscard]]
+		constexpr const char* cend() const
+		{
+			return std::next(m_array.data(), static_cast<std::ptrdiff_t>(Size()));
+		}
+
+		[[nodiscard]]
+		constexpr std::string_view Data() const noexcept
+		{
+			return std::string_view{ m_array.data(), m_array.size() };
+		}
+
+		template<std::size_t LeftSize, std::size_t RightSize>
+		friend constexpr auto operator+(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right);
+
+		std::array<char, N + 1> m_array{};
+	};
+
+	//use Zengin way to get upper string
+	inline constexpr std::string StrViewToUpperZengin(const std::string_view t_name)
+	{
+		return t_name | std::views::transform(FixedStr<0>::CharToUpperSimple) | std::ranges::to<std::string>();
 	}
+
+	template<std::size_t Size>
+	FixedStr(const char(&)[Size]) -> FixedStr<Size - 1>;
+
+	template<std::size_t LeftSize, std::size_t RightSize>
+	FixedStr(FixedStr<LeftSize> t_left, FixedStr<RightSize> t_right) -> FixedStr<LeftSize + RightSize>;
+
+	template<std::size_t LeftSize, std::size_t RightSize>
+	constexpr auto operator+(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right)
+	{
+		return FixedStr(t_left, t_right);
+	};
 
 	template<bool ToUpper = true>
 	inline constexpr int ParserGetIndex(zCParser* const t_parser, std::string_view t_name)
@@ -483,26 +574,33 @@ namespace GOTHIC_ENGINE
 		}
 	}
 
-	template<DaedalusReturn T = IgnoreReturn, bool Cache = true>
-	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, bool Upper = true>
+	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		if constexpr (Cache == false)
 		{
-			return DaedalusCall<T, true>(t_par, ParserGetIndex(t_par, t_name), t_clearStack, std::move(t_args)...);
+			return DaedalusCall<T, true>(t_par, ParserGetIndex<Upper>(t_par, t_name), t_clearStack, std::move(t_args)...);
 		}
 
-		//TODO try to make it compile time if t_name is has static string
-		std::string upper = StrViewToUpperZengin(t_name);
+
+		//TODO simplify
+		[[maybe_unused]]
+		std::string upper{};
+		if constexpr (Upper)
+		{
+			upper = StrViewToUpperZengin(t_name);
+			t_name = upper;
+		}
 
 		auto& cache = CallFuncStringCache::Get(t_par);
 
-		auto index = cache.FindCache(upper).value_or(DaedalusFunction{ -1 });
+		auto index = cache.FindCache(t_name).value_or(DaedalusFunction{ -1 });
 
 		if (index == DaedalusFunction{ -1 })
 		{
 			const auto callError = [&]() -> std::optional<eCallFuncError>
 			{
-				index = DaedalusFunction{ ParserGetIndex<false>(t_par, upper) };
+				index = DaedalusFunction{ ParserGetIndex<false>(t_par, t_name) };
 
 				if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
 					error.has_value())
@@ -510,7 +608,7 @@ namespace GOTHIC_ENGINE
 					return error;
 				}
 
-				cache.Add(std::move(upper), index);
+				cache.Add(Upper ? std::move(upper) : std::string{t_name}, index);
 
 				return{};
 			}();
@@ -531,6 +629,12 @@ namespace GOTHIC_ENGINE
 	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		return DaedalusCall<T, Cache>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
+	}
+
+	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, size_t N = 0>
+	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const char(&t_name)[N], const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	{
+		return DaedalusCall<T, Cache, false>(t_par, FixedStr{ t_name }.Upper().Data(), t_clearStack, std::move(t_args)...);
 	}
 
 }
