@@ -29,137 +29,49 @@ namespace GOTHIC_ENGINE
 	struct IgnoreReturn {};
 
 
-	template<std::size_t N>
-	struct FixedStr
+	//same array is used in zSTRING::ToUpper
+	inline constexpr std::array<unsigned char, 256> ToUpperArray =
 	{
-		//same array is used in zSTRING::ToUpper
-		inline static constexpr std::array<unsigned char, 256> ToUpperArray =
-		{
-			 0,1,2,3,4,5,6,7,8,9,
-			 10,11,12,13,14,15,16,17,18,19,
-			 20,21,22,23,24,25,26,27,28,29,
-			 30,31,32,33,34,35,36,37,38,39,
-			 40,41,42,43,44,45,46,47,48,49,
-			 50,51,52,53,54,55,56,57,58,59,
-			 60, 61, 62, 63, 64,'A','B','C','D','E',
-			 'F','G','H','I','J','K','L','M','N','O',
-			 'P','Q','R','S','T','U','V','W','X','Y',
-			 'Z', 91, 92, 93, 94, 95, 96,'A','B','C',
-			 'D','E','F','G','H','I','J','K','L','M',
-			 'N','O','P','Q','R','S','T','U','V','W',
-			 'X','Y','Z',123,124,125,126,127,128,154,
-			 144,182,142,183,143,128,210,211,212,216,
-			 215,221,142,143,144,146,226,153,227,234,
-			 235,190,152,153,154,157,156,157,158,159,
-			 181,214,224,233,165,165,166,167,168,169,
-			 170,171,172,173,174,175,176,177,178,179,
-			 180,181,182,183,184,185,186,187,188,189,
-			 190,191,192,193,194,195,196,197,198,198,
-			 200,201,202,203,204,205,206,207,208,209,
-			 210,211,212,213,214,215,216,217,218,219,
-			 220,221,222,223,224,225,226,227,229,229,
-			 230,232,232,233,208,235,237,237,238,239,
-			 240,241,242,243,244,245,246,247,248,249,
-			 250,251,252,253,254,255
-		};
-		
-		static inline constexpr char CharToUpperSimple(const char t_char)
-		{
-			return static_cast<char>(ToUpperArray[static_cast<unsigned char>(t_char)]);
-		}
-
-		static inline constexpr char CharToLowerSimple(const char t_char)
-		{
-			return t_char >= 'A' && t_char <= 'Z'
-				? static_cast<char>(static_cast<unsigned char>(t_char) + ('a' - 'A'))
-				: t_char;
-		}
-
-		constexpr FixedStr(const char(&source)[N + 1])
-		{
-			std::copy(std::cbegin(source), std::cend(source), begin());
-		}
-
-		template<std::size_t LeftSize, std::size_t RightSize>
-		constexpr FixedStr(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right)
-		{
-			static_assert(LeftSize + RightSize == Size);
-
-			std::copy(t_left.cbegin(), t_left.cend(), begin());
-			std::copy(t_right.cbegin(), t_right.cend(), std::next(begin(), static_cast<std::ptrdiff_t>(t_left.size())));
-		}
-
-		constexpr auto& Upper()
-		{
-			std::ranges::transform(m_array, std::begin(m_array), CharToUpperSimple);
-			return *this;
-		}
-
-		constexpr auto& Lower()
-		{
-			std::ranges::transform(m_array, std::begin(m_array), CharToLowerSimple);
-			return *this;
-		}
-
-		[[nodiscard]]
-		constexpr size_t Size() const noexcept
-		{
-			return Size;
-		}
-
-		[[nodiscard]]
-		constexpr char* begin()
-		{
-			return m_array.data();
-		}
-
-		[[nodiscard]]
-		constexpr char* end()
-		{
-			return std::next(m_array.data(), Size());
-		}
-
-		[[nodiscard]]
-		constexpr const char* cbegin() const
-		{
-			return m_array.data();
-		}
-
-		[[nodiscard]]
-		constexpr const char* cend() const
-		{
-			return std::next(m_array.data(), static_cast<std::ptrdiff_t>(Size()));
-		}
-
-		[[nodiscard]]
-		constexpr std::string_view Data() const noexcept
-		{
-			return std::string_view{ m_array.data(), m_array.size() };
-		}
-
-		template<std::size_t LeftSize, std::size_t RightSize>
-		friend constexpr auto operator+(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right);
-
-		std::array<char, N + 1> m_array{};
+		 0,1,2,3,4,5,6,7,8,9,
+		 10,11,12,13,14,15,16,17,18,19,
+		 20,21,22,23,24,25,26,27,28,29,
+		 30,31,32,33,34,35,36,37,38,39,
+		 40,41,42,43,44,45,46,47,48,49,
+		 50,51,52,53,54,55,56,57,58,59,
+		 60, 61, 62, 63, 64,'A','B','C','D','E',
+		 'F','G','H','I','J','K','L','M','N','O',
+		 'P','Q','R','S','T','U','V','W','X','Y',
+		 'Z', 91, 92, 93, 94, 95, 96,'A','B','C',
+		 'D','E','F','G','H','I','J','K','L','M',
+		 'N','O','P','Q','R','S','T','U','V','W',
+		 'X','Y','Z',123,124,125,126,127,128,154,
+		 144,182,142,183,143,128,210,211,212,216,
+		 215,221,142,143,144,146,226,153,227,234,
+		 235,190,152,153,154,157,156,157,158,159,
+		 181,214,224,233,165,165,166,167,168,169,
+		 170,171,172,173,174,175,176,177,178,179,
+		 180,181,182,183,184,185,186,187,188,189,
+		 190,191,192,193,194,195,196,197,198,198,
+		 200,201,202,203,204,205,206,207,208,209,
+		 210,211,212,213,214,215,216,217,218,219,
+		 220,221,222,223,224,225,226,227,229,229,
+		 230,232,232,233,208,235,237,237,238,239,
+		 240,241,242,243,244,245,246,247,248,249,
+		 250,251,252,253,254,255
 	};
+
+	static inline constexpr char CharToUpperSimple(const char t_char)
+	{
+		return static_cast<char>(ToUpperArray[static_cast<unsigned char>(t_char)]);
+	}
+
 
 	//use Zengin way to get upper string
 	inline constexpr std::string StrViewToUpperZengin(const std::string_view t_name)
 	{
-		return t_name | std::views::transform(FixedStr<0>::CharToUpperSimple) | std::ranges::to<std::string>();
+		return t_name | std::views::transform(CharToUpperSimple) | std::ranges::to<std::string>();
 	}
 
-	template<std::size_t Size>
-	FixedStr(const char(&)[Size]) -> FixedStr<Size - 1>;
-
-	template<std::size_t LeftSize, std::size_t RightSize>
-	FixedStr(FixedStr<LeftSize> t_left, FixedStr<RightSize> t_right) -> FixedStr<LeftSize + RightSize>;
-
-	template<std::size_t LeftSize, std::size_t RightSize>
-	constexpr auto operator+(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right)
-	{
-		return FixedStr(t_left, t_right);
-	};
 
 	template<bool ToUpper = true>
 	inline constexpr int ParserGetIndex(zCParser* const t_parser, std::string_view t_name)
@@ -575,7 +487,7 @@ namespace GOTHIC_ENGINE
 	}
 
 	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, bool Upper = true>
-	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		if constexpr (Cache == false)
 		{
@@ -608,7 +520,7 @@ namespace GOTHIC_ENGINE
 					return error;
 				}
 
-				cache.Add(Upper ? std::move(upper) : std::string{t_name}, index);
+				cache.Add(Upper ? std::move(upper) : std::string{ t_name }, index);
 
 				return{};
 			}();
@@ -622,19 +534,33 @@ namespace GOTHIC_ENGINE
 
 		return DaedalusCall<T, false>(t_par, index, t_clearStack, std::move(t_args)...);
 	}
-
+	
 	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, typename ZSTR = zSTRING>
 	//hack for implicit zSTRING conversion
 		requires(std::same_as<ZSTR, zSTRING>)
-	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		return DaedalusCall<T, Cache>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
 	}
 
-	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, size_t N = 0>
-	std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const char(&t_name)[N], const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	template<size_t N>
+	constexpr std::array<char,N> GetUpperString(const char(&t_array)[N])
 	{
-		return DaedalusCall<T, Cache, false>(t_par, FixedStr{ t_name }.Upper().Data(), t_clearStack, std::move(t_args)...);
+		std::array<char, N> str;
+		
+		for (size_t i = 0; i < N; i++)
+		{
+			str[i] = CharToUpperSimple(t_array[i]);
+		}
+
+		return str;
+	}
+
+	template<DaedalusReturn T = IgnoreReturn, size_t N>
+	 constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const char(&t_name)[N], const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	{
+		 const auto str = GetUpperString(t_name);
+		 return DaedalusCall<T, true, false>(t_par, std::string_view(str), t_clearStack, std::move(t_args)...);;
 	}
 
 }
