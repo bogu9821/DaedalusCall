@@ -544,7 +544,7 @@ namespace GOTHIC_ENGINE
 	}
 
 	template<size_t N>
-	constexpr std::array<char,N> GetUpperString(const char(&t_array)[N])
+	__forceinline constexpr std::array<char,N> GetUpperString(const char(&t_array)[N])
 	{
 		std::array<char, N> str;
 		
@@ -559,8 +559,8 @@ namespace GOTHIC_ENGINE
 	template<DaedalusReturn T = IgnoreReturn, size_t N>
 	 constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const char(&t_name)[N], const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
-		 const auto str = GetUpperString(t_name);
-		 return DaedalusCall<T, true, false>(t_par, std::string_view(str), t_clearStack, std::move(t_args)...);;
+		const auto str = GetUpperString(t_name);
+		return DaedalusCall<T, true, false>(t_par, std::string_view{ str.data(), N }, t_clearStack, std::move(t_args)...);;
 	}
 
 }
