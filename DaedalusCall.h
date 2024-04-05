@@ -28,6 +28,49 @@ namespace GOTHIC_ENGINE
 	struct DaedalusVoid {};
 	struct IgnoreReturn {};
 
+	struct DCStringView
+	{
+		explicit constexpr DCStringView(const char* t_str)
+			: m_view(t_str)
+		{
+		
+		}
+
+		explicit constexpr DCStringView(const char* t_str, const size_t t_num)
+			: m_view(t_str, t_num)
+		{
+
+		}
+
+		constexpr DCStringView(std::string_view t_view)
+			: m_view(t_view)
+		{
+
+		}
+
+		constexpr DCStringView(const std::string& t_str)
+			: m_view(t_str)
+		{
+
+		}
+
+		DCStringView(DCStringView&&) = default;
+		DCStringView(const DCStringView&) = default;
+
+		constexpr auto& operator=(const auto& t_str)
+		{
+			m_view = t_str;
+			return *this;
+		}
+
+		operator std::string_view() const
+		{
+			return m_view;
+		}
+		
+		std::string_view m_view;
+	};
+
 
 	//same array is used in zSTRING::ToUpper
 	inline constexpr std::array<unsigned char, 256> ToUpperArray =
@@ -487,7 +530,7 @@ namespace GOTHIC_ENGINE
 	}
 
 	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, bool Upper = true>
-	constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, std::string_view t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, DCStringView t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		if constexpr (Cache == false)
 		{
@@ -531,10 +574,9 @@ namespace GOTHIC_ENGINE
 			}
 
 		}
-
 		return DaedalusCall<T, false>(t_par, index, t_clearStack, std::move(t_args)...);
 	}
-	
+
 	template<DaedalusReturn T = IgnoreReturn, bool Cache = true, typename ZSTR = zSTRING>
 	//hack for implicit zSTRING conversion
 		requires(std::same_as<ZSTR, zSTRING>)
@@ -543,24 +585,44 @@ namespace GOTHIC_ENGINE
 		return DaedalusCall<T, Cache>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
 	}
 
-	template<size_t N>
-	__forceinline constexpr std::array<char,N> GetUpperString(const char(&t_array)[N])
+	template<std::size_t N>
+	struct DCFixedStr
 	{
-		std::array<char, N> str;
-		
-		for (size_t i = 0; i < N; i++)
+		using CharArray = const char(&)[N];
+
+		std::array<char, N> m_array;
+
+		consteval DCFixedStr(const CharArray t_array)
 		{
-			str[i] = CharToUpperSimple(t_array[i]);
+			for (size_t i = 0; i < N; i++)
+			{
+				m_array[i] = ToUpperArray[static_cast<unsigned char>(t_array[i])];
+			}
 		}
 
-		return str;
+		constexpr size_t Size() const
+		{
+			return N;
+		}
+	};
+
+	template<size_t N>
+	consteval auto DCFunction(const char(&t_str)[N])
+	{
+		return DCFixedStr{ t_str };
 	}
 
-	template<DaedalusReturn T = IgnoreReturn, size_t N>
-	 constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const char(&t_name)[N], const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	constexpr auto DCFunction(const auto& t_str)
 	{
-		const auto str = GetUpperString(t_name);
-		return DaedalusCall<T, true, false>(t_par, std::string_view{ str.data(), N }, t_clearStack, std::move(t_args)...);;
+		return DCStringView{ t_str };
+	}
+
+
+
+	template<DaedalusReturn T = IgnoreReturn, size_t N>
+	inline constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const DCFixedStr<N> t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	{
+		return DaedalusCall<T, true, false>(t_par, std::string_view{ t_name.m_array.data(), N }, t_clearStack, std::move(t_args)...);;
 	}
 
 }
