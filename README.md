@@ -6,7 +6,7 @@ Requires C++23 and is designed to work with [Gothic API](https://gitlab.com/unio
 ```cpp
 bool IsPlayerFakeBandit() noexcept(false)
 {
-  const auto playerIsFakeBanditCall = DaedalusCall<int>(parser, "C_PLAYERISFAKEBANDIT", {}/*eClearStack::CLEAR*/, GetFocus(), player);
+  const auto playerIsFakeBanditCall = DaedalusCall<int>(parser, DCFunction("C_PLAYERISFAKEBANDIT"), {}/*eClearStack::CLEAR*/, GetFocus(), player);
   if (!playerIsFakeBanditCall.has_value())
   {
     throw std::runtime_error(std::format("CallFuncError: {}", std::to_underlying(f.error())));
