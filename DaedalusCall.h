@@ -123,8 +123,13 @@ namespace GOTHIC_ENGINE
 		{
 			return N;
 		}
-	};
 
+		constexpr operator DCStringView() const
+		{
+			return DCStringView(m_array.data(), N);
+		}
+	};
+	
 	template<size_t N>
 	consteval auto DCFunction(const char(&t_str)[N])
 	{
@@ -621,7 +626,7 @@ namespace GOTHIC_ENGINE
 	template<DaedalusReturn T = IgnoreReturn, size_t N>
 	__forceinline constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const DCFixedStr<N> t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
-		return DaedalusCall<T, true, false>(t_par, std::string_view{ t_name.m_array.data(), N }, t_clearStack, std::move(t_args)...);;
+		return DaedalusCall<T, true, false>(t_par, t_name, t_clearStack, std::move(t_args)...);
 	}
 
 }
