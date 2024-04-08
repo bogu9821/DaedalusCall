@@ -597,8 +597,8 @@ namespace GOTHIC_ENGINE
 
 				if (const auto error = CallFuncContext{ t_par,index }.CheckDaedalusCallError<T, std::decay_t<decltype(t_args)>...>();
 					error.has_value())
-					{
-				return error;
+				{
+					return error;
 				}
 
 				cache.Add(Upper ? std::move(upper) : std::string{ t_name }, index);
