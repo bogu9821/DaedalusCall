@@ -548,8 +548,16 @@ namespace GOTHIC_ENGINE
 
 		if (contex.m_symbol->flags & zPAR_FLAG_EXTERNAL) DCUnlikely
 		{
+			const auto cur_par = zCParser::cur_parser;
+			const auto cur_instance = zCPar_Symbol::instance_sym;
+
+			zCParser::cur_parser = t_par;
+			
 			auto const Func = reinterpret_cast<int(*)()>(contex.m_symbol->single_intdata);
 			Func();
+
+			zCParser::cur_parser = cur_par;
+			zCPar_Symbol::SetUseInstance(cur_instance);
 		}
 		else DCLikely
 		{
