@@ -107,17 +107,9 @@ namespace GOTHIC_ENGINE
 	template<std::size_t N>
 	struct DCFixedStr
 	{
-		using CharArray = const char(&)[N];
-
-		std::array<char, N> m_array;
-
-		consteval DCFixedStr(const CharArray t_array)
-		{
-			for (size_t i = 0; i < N; i++)
-			{
-				m_array[i] = ToUpperArray[static_cast<unsigned char>(t_array[i])];
-			}
-		}
+		using CharArray = char[N];
+		CharArray m_array;
+	
 
 		constexpr size_t Size() const
 		{
@@ -126,14 +118,32 @@ namespace GOTHIC_ENGINE
 
 		constexpr operator DCStringView() const
 		{
-			return DCStringView(m_array.data(), N);
+			return DCStringView(static_cast<const char*>(m_array), N);
 		}
+		
+	private:
+		template<size_t StrSize>
+		consteval DCFixedStr(const char(&t_array)[StrSize])
+		{
+			for (size_t i = 0; i < N; i++)
+			{
+				m_array[i] = ToUpperArray[static_cast<unsigned char>(t_array[i])];
+			}
+		}
+
+		template<size_t N>
+		friend consteval auto DCFunction(const char(&t_charArray)[N]);
 	};
-	
+
+	template<std::size_t N>
+	DCFixedStr(const char(&)[N]) -> DCFixedStr<N - 1>;
+
+	// t_charArray should be null terminated
 	template<size_t N>
-	consteval auto DCFunction(const char(&t_str)[N])
+	consteval auto DCFunction(const char(&t_charArray)[N])
 	{
-		return DCFixedStr{ t_str };
+		assert(t_charArray[N-1] == '\0');
+		return DCFixedStr{ t_charArray };
 	}
 
 	constexpr auto DCFunction(const auto& t_str)
