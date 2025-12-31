@@ -36,7 +36,7 @@ namespace GOTHIC_ENGINE
 		
 		}
 
-		explicit constexpr DCStringView(const char* t_str, const size_t t_num)
+		explicit constexpr DCStringView(const char* t_str, const std::size_t t_num)
 			: m_view(t_str, t_num)
 		{
 
@@ -104,46 +104,52 @@ namespace GOTHIC_ENGINE
 	};
 
 
-	template<std::size_t N>
+	template<std::size_t N, bool NullTerminated>
 	struct DCFixedStr
 	{
 		using CharArray = char[N];
-		CharArray m_array;
-	
+		CharArray m_array{};
+		std::size_t m_realSize{ N };
 
-		constexpr size_t Size() const
+		constexpr std::size_t Size() const
 		{
-			return N;
+			return m_realSize;
 		}
 
 		constexpr operator DCStringView() const
 		{
-			return DCStringView(static_cast<const char*>(m_array), N);
+			return DCStringView(static_cast<const char*>(m_array), Size());
 		}
 		
 	private:
-		template<size_t StrSize>
+		template<std::size_t StrSize>
+			requires(StrSize <= N)
 		consteval DCFixedStr(const char(&t_array)[StrSize])
+			: m_realSize{ StrSize }
 		{
-			for (size_t i = 0; i < N; i++)
+			for (std::size_t i = 0; i < StrSize; i++)
 			{
 				m_array[i] = ToUpperArray[static_cast<unsigned char>(t_array[i])];
+
+				if constexpr (NullTerminated)
+				{
+					if (t_array[i] == '\0')
+					{
+						m_realSize = i;
+						break;
+					}
+				}
 			}
 		}
 
-		template<size_t N>
+		template<bool NullTerminated, std::size_t N>
 		friend consteval auto DCFunction(const char(&t_charArray)[N]);
 	};
 
-	template<std::size_t N>
-	DCFixedStr(const char(&)[N]) -> DCFixedStr<N - 1>;
-
-	// t_charArray should be null terminated
-	template<size_t N>
+	template<bool NullTerminated = true, std::size_t N>
 	consteval auto DCFunction(const char(&t_charArray)[N])
 	{
-		assert(t_charArray[N-1] == '\0');
-		return DCFixedStr{ t_charArray };
+		return DCFixedStr<N, NullTerminated>{ t_charArray };
 	}
 
 	constexpr auto DCFunction(const auto& t_str)
@@ -308,7 +314,7 @@ namespace GOTHIC_ENGINE
 		template<DaedalusData... Args>
 		inline bool CheckAllTypes() const
 		{
-			size_t counter{};
+			std::size_t counter{};
 			bool valid{ true };
 			(((!CheckType<Args>(counter++)
 				? (valid = false, false) : true)
@@ -317,7 +323,7 @@ namespace GOTHIC_ENGINE
 			return valid;
 		}
 
-		inline void PushOne(DaedalusData auto&& t_argument, [[maybe_unused]] const size_t t_index) const
+		inline void PushOne(DaedalusData auto&& t_argument, [[maybe_unused]] const std::size_t t_index) const
 		{
 			using ArgType = std::decay_t<decltype(t_argument)>;
 
@@ -400,7 +406,7 @@ namespace GOTHIC_ENGINE
 		}
 
 		template<DaedalusReturn T>
-		inline bool CheckType(const size_t t_offset) const
+		inline bool CheckType(const std::size_t t_offset) const
 		{
 			const auto argOffset = m_function.m_index + static_cast<int>(t_offset) + 1;
 			assert(argOffset < m_parser->symtab.table.GetNum());
@@ -458,15 +464,15 @@ namespace GOTHIC_ENGINE
 	struct string_hash
 	{
 		using is_transparent = void;
-		[[nodiscard]] size_t operator()(const char* txt) const
+		[[nodiscard]] std::size_t operator()(const char* txt) const
 		{
 			return std::hash<std::string_view>{}(txt);
 		}
-		[[nodiscard]] size_t operator()(std::string_view txt) const
+		[[nodiscard]] std::size_t operator()(std::string_view txt) const
 		{
 			return std::hash<std::string_view>{}(txt);
 		}
-		[[nodiscard]] size_t operator()(const std::string& txt) const
+		[[nodiscard]] std::size_t operator()(const std::string& txt) const
 		{
 			return std::hash<std::string>{}(txt);
 		}
@@ -641,11 +647,11 @@ namespace GOTHIC_ENGINE
 		requires(std::same_as<ZSTR, zSTRING>)
 	__forceinline constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const ZSTR& t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
-		return DaedalusCall<T, Cache>(t_par, std::string_view{ t_name.ToChar(), static_cast<size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
+		return DaedalusCall<T, Cache>(t_par, std::string_view{ t_name.ToChar(), static_cast<std::size_t>(t_name.Length()) }, t_clearStack, std::move(t_args)...);
 	}
 
-	template<DaedalusReturn T = IgnoreReturn, size_t N>
-	__forceinline constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const DCFixedStr<N> t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
+	template<DaedalusReturn T = IgnoreReturn, std::size_t N, bool NullTerminated>
+	__forceinline constexpr std::expected<T, eCallFuncError> DaedalusCall(zCParser* const t_par, const DCFixedStr<N, NullTerminated> t_name, const eClearStack t_clearStack, DaedalusData auto...  t_args)
 	{
 		return DaedalusCall<T, true, false>(t_par, t_name, t_clearStack, std::move(t_args)...);
 	}
